@@ -1,33 +1,42 @@
 "use client";
 import { Mail, Lock, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
-import { redirect } from "next/navigation";
-import { loginAction } from "./action";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError("");
+      e.preventDefault();
+      setError("");
 
-    const formData = new FormData(e.currentTarget);
-    formData.append("app_id", "business-cloud");
-    startTransition(async () => {
-      const res = await loginAction(formData);
+      const formData = new FormData(e.currentTarget);
+      formData.append("app_id", "business-cloud");
 
-      if (!res.success) {
-        setError(res.message);
-        return;
-      }
+      const payload = Object.fromEntries(formData.entries());
 
-      // ✅ 成功後前端導頁（靜態可用）
-      redirect("/dashboard"); 
-    });
-  }
+      startTransition(async () => {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+
+        if (!data.ok) {
+          setError(data.message);
+          return;
+        }
+
+        // ✅ Client 導頁一定要用 router
+        router.push("/dashboard");
+      });
+    }
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-6">
